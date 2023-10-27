@@ -29,25 +29,25 @@ discount = 0.9 # The discount is used to force the network to choose states that
 learningRate = 0.2 # Learning Rate for Stochastic Gradient Descent (our optimizer).
 
 # Create the base model.
-X = tf.placeholder(tf.float32, [None, nbStates])
-W1 = tf.Variable(tf.truncated_normal([nbStates, hiddenSize], stddev=1.0 / math.sqrt(float(nbStates))))
-b1 = tf.Variable(tf.truncated_normal([hiddenSize], stddev=0.01))
+X = tf.compat.v1.placeholder(tf.float32, [None, nbStates])
+W1 = tf.Variable(tf.random.truncated_normal([nbStates, hiddenSize], stddev=1.0 / math.sqrt(float(nbStates))))
+b1 = tf.Variable(tf.random.truncated_normal([hiddenSize], stddev=0.01))
 input_layer = tf.nn.relu(tf.matmul(X, W1) + b1)
-W2 = tf.Variable(tf.truncated_normal([hiddenSize, hiddenSize],stddev=1.0 / math.sqrt(float(hiddenSize))))
-b2 = tf.Variable(tf.truncated_normal([hiddenSize], stddev=0.01))
+W2 = tf.Variable(tf.random.truncated_normal([hiddenSize, hiddenSize],stddev=1.0 / math.sqrt(float(hiddenSize))))
+b2 = tf.Variable(tf.random.truncated_normal([hiddenSize], stddev=0.01))
 hidden_layer = tf.nn.relu(tf.matmul(input_layer, W2) + b2)
-W3 = tf.Variable(tf.truncated_normal([hiddenSize, nbActions],stddev=1.0 / math.sqrt(float(hiddenSize))))
-b3 = tf.Variable(tf.truncated_normal([nbActions], stddev=0.01))
+W3 = tf.Variable(tf.random.truncated_normal([hiddenSize, nbActions],stddev=1.0 / math.sqrt(float(hiddenSize))))
+b3 = tf.Variable(tf.random.truncated_normal([nbActions], stddev=0.01))
 output_layer = tf.matmul(hidden_layer, W3) + b3
 
 # True labels
-Y = tf.placeholder(tf.float32, [None, nbActions])
+Y = tf.compat.v1.placeholder(tf.float32, [None, nbActions])
 
 # Mean squared error cost function
 cost = tf.reduce_sum(tf.square(Y-output_layer)) / (2*batchSize)
 
 # Stochastic Gradient Decent Optimizer
-optimizer = tf.train.GradientDescentOptimizer(learningRate).minimize(cost)
+optimizer = tf.compat.v1.train.GradientDescentOptimizer(learningRate).minimize(cost)
 
 
 # Helper function: Chooses a random value between the two boundaries.
@@ -206,11 +206,11 @@ def main(_):
   memory = ReplayMemory(gridSize, maxMemory, discount)
 
   # Add ops to save and restore all the variables.
-  saver = tf.train.Saver()
+  saver = tf.compat.v1.train.Saver()
 
   winCount = 0
-  with tf.Session() as sess:
-    tf.initialize_all_variables().run()
+  with tf.compat.v1.Session() as sess:
+    tf.compat.v1.initialize_all_variables().run()
 
     for i in xrange(epoch):
       # Initialize the environment.
@@ -263,4 +263,4 @@ def main(_):
     print("Model saved in file: %s" % save_path)
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()
