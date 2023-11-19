@@ -3,47 +3,54 @@
 #include <stdlib.h>
 #include <string.h>
 
-//// íŒŒë¼ë¯¸í„° ////
+//// ÆÄ¶ó¹ÌÅÍ ////
 #define input_size 16*16
 #define output_size 7
-#define hidden_size 1000
-int learning_cycle = 100;
+#define hidden_size 500
+int learning_cycle = 10;
 int data_set=10;
 int test_set = 20;
-double learning_rate = 0.0000000000001;
+double learning_rate = 0.000000000000000001;
 
-///// ì‹ ê²½ë§ êµ¬í˜„ ////////
+///// ½Å°æ¸Á ±¸Çö ////////
 double input_layer[input_size]={0,};
 double output_layer[output_size]={0,};
 double hidden_layer1[hidden_size]={0,};
 double hidden_layer2[hidden_size]={0,};
+double hidden_layer3[hidden_size] = { 0, };
 
 double w1[hidden_size][input_size]={0,};
 double w2[hidden_size][hidden_size]={0,};
-double w3[output_size][hidden_size]={0,};
+double w3[hidden_size][hidden_size]={0,};
+double w4[output_size][hidden_size] = { 0, };
 
 double hidden_output1[hidden_size]={0,};
 double hidden_output2[hidden_size]={0,};
+double hidden_output3[hidden_size] = { 0, };
 double output_output[output_size]={0,};
 
 double output_error[output_size]={0,};
 double hidden_error1[hidden_size]={0,};
 double hidden_error2[hidden_size]={0,};
+double hidden_error3[hidden_size] = { 0, };
+
 
 double img[input_size]={0,};
 
-//// ê°€ì¤‘ì¹˜ ì „ì¹˜í–‰ë ¬ ////
+//// °¡ÁßÄ¡ ÀüÄ¡Çà·Ä ////
 double tw1[input_size][hidden_size] = { 0, };
 double tw2[hidden_size][hidden_size] = { 0, };
-double tw3[hidden_size][output_size] = { 0, };
+double tw3[hidden_size][hidden_size] = { 0, };
+double tw4[hidden_size][output_size] = { 0, };
 
-//// ê°€ì¤‘ì¹˜ ì—…ë°ì´íŠ¸ ////
+//// °¡ÁßÄ¡ ¾÷µ¥ÀÌÆ® ////
 double dw1[hidden_size][input_size] = { 0, };
 double dw2[hidden_size][hidden_size] = { 0, };
-double dw3[output_size][hidden_size] = { 0, };
+double dw3[hidden_size][hidden_size] = { 0, };
+double dw4[output_size][hidden_size] = { 0, };
 
 
-//// ê°€ì¤‘ì¹˜ ì´ˆê¸°í™” ////
+//// °¡ÁßÄ¡ ÃÊ±âÈ­ ////
 void wreset()
 {
     int i, j;
@@ -64,16 +71,24 @@ void wreset()
         }
     }
 
+    for (i = 0; i < hidden_size; i++)
+    {
+        for (j = 0; j < hidden_size; j++)
+        {
+            w3[i][j] = rand() / (double)RAND_MAX;
+        }
+    }
+
     for(i=0;i<output_size;i++)
     {
         for(j=0;j<hidden_size;j++)
         {
-            w3[i][j]=rand()/(double)RAND_MAX;
+            w4[i][j]=rand()/(double)RAND_MAX;
         }
     }
 }
 
-//2ì°¨ì› ë°°ì—´ í¬ê¸° ì•Œì•„ë‚´ëŠ”ë²•
+//2Â÷¿ø ¹è¿­ Å©±â ¾Ë¾Æ³»´Â¹ı
 //int row_A = sizeof(A) / sizeof(A[0]);
 //int col_A = sizeof(A[0])/sizeof(float);
 
@@ -81,8 +96,8 @@ void img_input(alphabet, num, check)
 {
     int i = 0;
     char img_path[30];
-    char alpha[5] = { alphabet + 't' }; // ì½ì–´ì˜¬ íŒŒì¼ì˜ ì´ë¦„ ì¤‘ ì•ŒíŒŒë²³ ë¶€ë¶„ì„ ë§Œë“¤ì–´ì¤€ë‹¤ 
-    char n[5];  // ì½ì–´ì˜¬ íŒŒì¼ì˜ ì´ë¦„ ì¤‘ ìˆ«ì ë¶€ë¶„ì„ ë§Œë“¤ì–´ì¤€ë‹¤ 
+    char alpha[5] = { alphabet + 't' }; // ÀĞ¾î¿Ã ÆÄÀÏÀÇ ÀÌ¸§ Áß ¾ËÆÄºª ºÎºĞÀ» ¸¸µé¾îÁØ´Ù 
+    char n[5];  // ÀĞ¾î¿Ã ÆÄÀÏÀÇ ÀÌ¸§ Áß ¼ıÀÚ ºÎºĞÀ» ¸¸µé¾îÁØ´Ù 
     num++;
     if (num >= 10)
     {
@@ -97,7 +112,7 @@ void img_input(alphabet, num, check)
     }
     char c[5] = ".csv";
     
-    char str[6000];
+    char str[7000];
     char* p;
     if (check == 0)
     {
@@ -128,7 +143,7 @@ void img_input(alphabet, num, check)
     p = strtok(str, ",");
     for (i = 0; i < input_size;i++)
     {
-        img[i] = atof(p); // ë¬¸ìì—´ì„ ì‹¤ìˆ˜ë¡œ ë°”ê¾¸ì–´ì¤€ë‹¤ 
+        img[i] = atof(p); // ¹®ÀÚ¿­À» ½Ç¼ö·Î ¹Ù²Ù¾îÁØ´Ù 
         p = strtok(NULL, ",");
     }
 
@@ -151,8 +166,8 @@ void FP()
     }
 
     //// hidden_layer1 ////
-    //// w1ê³¼ input_layerë¥¼ í–‰ë ¬ê³±í•´ hidden_layer1ì— ì €ì¥í•´ì¤€ë‹¤
-    for (i = 0; i < hidden_size; i++) // hidden_layer1 ì´ˆê¸°í™”
+    //// w1°ú input_layer¸¦ Çà·Ä°öÇØ hidden_layer1¿¡ ÀúÀåÇØÁØ´Ù
+    for (i = 0; i < hidden_size; i++) // hidden_layer1 ÃÊ±âÈ­
     {
         hidden_layer1[i] = 0;
     }
@@ -163,15 +178,15 @@ void FP()
             hidden_layer1[i] += (w1[i][j]*input_layer[j]);
         }
     }
-    //// ReLUì—°ì‚°ì„ í•œ ë’¤ hidden_output1ì— ì €ì¥í•´ì¤€ë‹¤
+    //// ReLU¿¬»êÀ» ÇÑ µÚ hidden_output1¿¡ ÀúÀåÇØÁØ´Ù
     for(i=0;i<hidden_size;i++)
     {
         hidden_output1[i] = relu(hidden_layer1[i]);
     }
 
     //// hidden_layer2 ////
-    //// w2ì™€ hidden_output1ì„ í–‰ë ¬ê³±í•´ hidden_layer2ì— ì €ì¥í•´ì¤€ë‹¤
-    for (i = 0; i < hidden_size; i++) // hidden_layer2 ì´ˆê¸°í™”
+    //// w2¿Í hidden_output1À» Çà·Ä°öÇØ hidden_layer2¿¡ ÀúÀåÇØÁØ´Ù
+    for (i = 0; i < hidden_size; i++) // hidden_layer2 ÃÊ±âÈ­
     {
         hidden_layer2[i] = 0;
     }
@@ -182,15 +197,34 @@ void FP()
             hidden_layer2[i] += (w2[i][j]*hidden_output1[j]);
         }
     }
-    //// ReLUì—°ì‚°ì„ í•œ ë’¤ hidden_output2ì— ì €ì¥í•´ì¤€ë‹¤
+    //// ReLU¿¬»êÀ» ÇÑ µÚ hidden_output2¿¡ ÀúÀåÇØÁØ´Ù
     for(i=0;i<hidden_size;i++)
     {
         hidden_output2[i] = relu(hidden_layer2[i]);
     }
 
+    //// hidden_layer3 ////
+    //// w3¿Í hidden_output2À» Çà·Ä°öÇØ hidden_layer3¿¡ ÀúÀåÇØÁØ´Ù
+    for (i = 0; i < hidden_size; i++) // hidden_layer3 ÃÊ±âÈ­
+    {
+        hidden_layer3[i] = 0;
+    }
+    for (i = 0; i < hidden_size; i++)
+    {
+        for (j = 0; j < hidden_size; j++)
+        {
+            hidden_layer3[i] += (w3[i][j] * hidden_output2[j]);
+        }
+    }
+    //// ReLU¿¬»êÀ» ÇÑ µÚ hidden_output2¿¡ ÀúÀåÇØÁØ´Ù
+    for (i = 0; i < hidden_size; i++)
+    {
+        hidden_output3[i] = relu(hidden_layer3[i]);
+    }
+
     //// output_layer ////
-    //// w3ê³¼ hidden_output2ë¥¼ í–‰ë ¬ê³±í•´ output_layerì— ì €ì¥í•´ì¤€ë‹¤
-    for (i = 0; i < output_size; i++) // hidden_layer1 ì´ˆê¸°í™”
+    //// w4°ú hidden_output3À» Çà·Ä°öÇØ output_layer¿¡ ÀúÀåÇØÁØ´Ù
+    for (i = 0; i < output_size; i++) // hidden_layer1 ÃÊ±âÈ­
     {
         output_layer[i] = 0;
     }
@@ -198,10 +232,10 @@ void FP()
     {
         for(j=0;j<hidden_size;j++)
         {
-            output_layer[i] += (w3[i][j] * hidden_output2[j]);
+            output_layer[i] += (w4[i][j] * hidden_output3[j]);
         }
     }
-    //// ReLUì—°ì‚°ì„ í•œ ë’¤ output_outputì— ì €ì¥í•´ì¤€ë‹¤
+    //// ReLU¿¬»êÀ» ÇÑ µÚ output_output¿¡ ÀúÀåÇØÁØ´Ù
     for(i=0;i<output_size;i++)
     {
         output_output[i]=relu(output_layer[i]);
@@ -215,11 +249,11 @@ void BP(int target)
     {
         if(i==target)
         {
-            output_error[i]=1000000-output_output[i];
+            output_error[i]=1-output_output[i];
         }
         else
         {
-            output_error[i]= 100000 -output_output[i];
+            output_error[i]= 0 -output_output[i];
         }
     }
 
@@ -233,9 +267,17 @@ void BP(int target)
 
     for(i=0;i<hidden_size;i++)
     {
-        for(j=0;j<input_size;j++)
+        for(j=0;j<hidden_size;j++)
         {
             tw2[j][i]=w2[i][j];
+        }
+    }
+
+    for (i = 0; i < hidden_size; i++)
+    {
+        for (j = 0; j < hidden_size; j++)
+        {
+            tw3[j][i] = w3[i][j];
         }
     }
 
@@ -243,16 +285,16 @@ void BP(int target)
     {
         for(j=0;j<hidden_size;j++)
         {
-            tw3[j][i]=w3[i][j];
+            tw4[j][i]=w4[i][j];
         }
     }
 
-    //// hidden_layerë“¤ì— ì—ëŸ¬ê°’ ì „ë‹¬í•˜ê¸°
+    //// hidden_layerµé¿¡ ¿¡·¯°ª Àü´ŞÇÏ±â
     for(i=0;i<hidden_size;i++)
     {
         for(j=0;j<output_size;j++)
         {
-            hidden_error2[i] = tw3[i][j]*output_error[j];
+            hidden_error3[i] = tw4[i][j]*output_error[j];
         }
     }
 
@@ -260,7 +302,15 @@ void BP(int target)
     {
         for(j=0;j<hidden_size;j++)
         {
-            hidden_error1[i] = tw2[i][j]*hidden_error2[j];
+            hidden_error2[i] = tw3[i][j]*hidden_error3[j];
+        }
+    }
+
+    for (i = 0; i < hidden_size; i++)
+    {
+        for (j = 0; j < hidden_size; j++)
+        {
+            hidden_error1[i] = tw2[i][j] * hidden_error2[j];
         }
     }
 }
@@ -270,18 +320,29 @@ void update()
     int i,j;
     double de_relu;
 
-    //// w3 ê°€ì¤‘ì¹˜ ì—…ë°ì´íŠ¸
+    //// w4 °¡ÁßÄ¡ ¾÷µ¥ÀÌÆ®
     for(i=0;i<output_size;i++)
     {
         for(j=0;j<hidden_size;j++)
         {
             de_relu = (output_layer[i]>0)*output_error[i];
-            dw3[i][j]=learning_rate * de_relu * hidden_output2[j];
+            dw4[i][j]=learning_rate * de_relu * hidden_output3[j];
+            w4[i][j] = w4[i][j] + dw4[i][j];
+        }
+    }
+
+    //// w3 °¡ÁßÄ¡ ¾÷µ¥ÀÌÆ®
+    for (i = 0; i < hidden_size; i++)
+    {
+        for (j = 0; j < hidden_size; j++)
+        {
+            de_relu = (hidden_layer3[i] > 0) * hidden_error3[i];
+            dw3[i][j] = learning_rate * de_relu * hidden_output2[j];
             w3[i][j] = w3[i][j] + dw3[i][j];
         }
     }
 
-    //// w2 ê°€ì¤‘ì¹˜ ì—…ë°ì´íŠ¸
+    //// w2 °¡ÁßÄ¡ ¾÷µ¥ÀÌÆ®
     for(i=0;i<hidden_size;i++)
     {
         for(j=0;j<hidden_size;j++)
@@ -292,7 +353,7 @@ void update()
         }
     }
 
-    //// w1 ê°€ì¤‘ì¹˜ ì—…ë°ì´íŠ¸
+    //// w1 °¡ÁßÄ¡ ¾÷µ¥ÀÌÆ®
     for(i=0;i<hidden_size;i++)
     {
         for(j=0;j<input_size;j++)
@@ -306,11 +367,11 @@ void update()
 
 int main()
 {
-    printf("ì‹œì‘\n");
+    printf("½ÃÀÛ\n");
     wreset();
     int i, j, k;
     
-    ////í•™ìŠµ
+    ////ÇĞ½À
     for(i=0;i<learning_cycle;i++)
     {
         printf("%d\n", i);
@@ -326,14 +387,14 @@ int main()
         }
     }
 
-    //// ì¶”ë¡  
+    //// Ãß·Ğ 
     for(i=0;i<output_size;i++)
     {
         for(j=0;j<test_set;j++)
         {
             img_input(i, j, 1);
             FP();
-            //// ê°€ì¥ í° ê°’ì„ ê°€ì§€ëŠ” ì¸ë±ìŠ¤ ë²ˆí˜¸ë¥¼ ì°¾ëŠ”ë‹¤
+            //// °¡Àå Å« °ªÀ» °¡Áö´Â ÀÎµ¦½º ¹øÈ£¸¦ Ã£´Â´Ù
             int index=0;
             double max = output_output[0];
             for(k=0;k<output_size;k++)
@@ -347,7 +408,7 @@ int main()
             }
             printf("\n");
 
-            char file_name[50] = "íŒŒì¼ëª…: ";
+            char file_name[50] = "ÆÄÀÏ¸í: ";
             char alpha[5] = { i + 't' };
             char n[5];
             if (j >= 10)
@@ -361,7 +422,7 @@ int main()
                 n[0] = j + '0';
                 n[1] = NULL;
             }
-            char infer[10] = " ì¶”ë¡ ê°’: ";
+            char infer[20] = " Ãß·Ğ°ª: ";
             char result[5] = { index + 't' };
             strcat(file_name, alpha);
             strcat(file_name, n);
