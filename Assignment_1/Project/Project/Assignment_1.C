@@ -96,7 +96,7 @@ void wreset()
 //int row_A = sizeof(A) / sizeof(A[0]);
 //int col_A = sizeof(A[0])/sizeof(float);
 
-void img_input(alphabet, num, check)
+void img_input(int alphabet, int num, int check)
 {
     int i = 0;
     char img_path[30];
@@ -138,7 +138,7 @@ void img_input(alphabet, num, check)
     if (pFile == NULL) // 만약 읽을 파일이 없다면 
     {
         printf("no file");
-        return 0;
+        return;
     }
     
     fgets(str, 7000, pFile); // str 배열에 읽을 파일을 넣어준다
